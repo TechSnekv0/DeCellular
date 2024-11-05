@@ -1,6 +1,8 @@
-package engine;
+package engine.util;
 
 import org.lwjgl.glfw.GLFWWindowSizeCallbackI;
+
+import engine.App;
 
 public class WindowSizeCallback implements GLFWWindowSizeCallbackI{
 

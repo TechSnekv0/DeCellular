@@ -3,6 +3,9 @@ import static org.lwjgl.glfw.GLFW.*;
 
 import org.lwjgl.opengl.GL;
 
+import engine.render.Renderer;
+import engine.util.WindowSizeCallback;
+
 public class App {
     public long windowID;
     public Renderer renderer;
@@ -18,7 +21,7 @@ public class App {
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
 
-        this.windowID = glfwCreateWindow(400, 400, "DECELLULAR", 0, 0);
+        this.windowID = glfwCreateWindow(width, height, "DECELLULAR", 0, 0);
         glfwMakeContextCurrent(this.windowID);
         GL.createCapabilities();
         
@@ -26,6 +29,7 @@ public class App {
         glfwSetWindowSizeCallback(this.windowID, windowSizeCallback);        
         
         this.renderer = new Renderer(this.windowID);
+        this.renderer.setViewport(width, height);
     }
 
     public void loop() {

@@ -13,6 +13,8 @@ public class App {
     public int width = 600;
     public int height = 400;
 
+    private long lastFrame = System.nanoTime();
+
     public void init() throws Exception {
         if (!glfwInit()) {
             throw new Exception("APP: GLFW FAILED TO INITIALISE!");
@@ -37,7 +39,9 @@ public class App {
             // loop
             glfwPollEvents();
 
-            this.renderer.render();
+            if (lastFrame + 100000000 < System.nanoTime()){
+                this.renderer.render();
+            } 
         }
         glfwHideWindow(this.windowID);
     }

@@ -1,5 +1,6 @@
 package engine;
 import static org.lwjgl.glfw.GLFW.*;
+import static engine.util.Constants.*;
 
 import org.lwjgl.opengl.GL;
 
@@ -10,8 +11,8 @@ public class App {
     public long windowID;
     public Renderer renderer;
 
-    public int width = 600;
-    public int height = 400;
+    public int width = 16*16*SCALE;
+    public int height = 16*16*SCALE;
 
     private long lastFrame = System.nanoTime();
 

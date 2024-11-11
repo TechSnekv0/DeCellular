@@ -1,14 +1,14 @@
 package engine.render;
 
 import static org.lwjgl.glfw.GLFW.glfwSwapBuffers;
-import static org.lwjgl.glfw.GLFW.glfwWaitEventsTimeout;
-import static org.lwjgl.stb.STBImage.*;
-
 import static engine.util.FileIO.*;
+import static engine.util.Constants.*;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.TimerTask;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL46;
 import org.lwjgl.system.MemoryUtil;
 
@@ -18,97 +18,50 @@ public class Renderer {
     private int windowWidth;
     private int windowHeight;
 
-    // 0.0f, 0.0f, 0, 0,
-    // 0.0f, 0.5f, 0, 1,
-    // 0.5f, 0.5f, 1, 1,
-    // 0.5f, 0.5f, 1, 1,
-    // 0.5f, 0.0f, 1, 0,
-    // 0.0f, 0.0f, 0, 0
-
-    float[] positions = {
-        0.0f, 0.0f,
-        0.0f, 0.5f,
-        0.5f, 0.5f,
-        0.5f, 0.5f,
-        0.5f, 0.0f,
-        0.0f, 0.0f
-    };
-
-    float[] textureCoords = {
-        0.0f, 0.0f,
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f,
-        0.0f, 0.0f
-    };
+    private int TILESIZE = 16;
     
-    private int vao;
-    private int vbo;
-    private int shaderProgramID;
-    private int textureID;
-    private int texvbo;
     private ByteBuffer image;
+    private IntBuffer imageWidth = MemoryUtil.memAllocInt(1);
+    private IntBuffer imageHeight = MemoryUtil.memAllocInt(1);
+    private IntBuffer imageChannels = MemoryUtil.memAllocInt(1);
+    private ByteBuffer[] tilesheet;
         
     public Renderer(long windowID) {
         this.windowID = windowID;
-        GL46.glClearColor(0.2f, 0.6f, 0.5f, 1.0f);
+        GL46.glClearColor(40.0f/256, 0, 33.0f/256, 1.0f);
 
-        IntBuffer imageWidth = MemoryUtil.memAllocInt(1);
-        IntBuffer imageHeight = MemoryUtil.memAllocInt(1);
-        IntBuffer imageChannels = MemoryUtil.memAllocInt(1);
-        this.image = ByteBuffer.allocate(imageWidth.get(0)*imageHeight.get(0)*imageChannels.get(0));
-        this.image.flip();
-        
-        ByteBuffer loaded = stbi_load("res/tile/CELL_cuboidal.png", imageWidth, imageHeight, imageChannels, 0);
-        this.image = loaded.duplicate(); //! THIS IS THE LINE YOU NEED
+        this.image = loadImage("res\\tile\\CELL_cuboidal.png", imageWidth, imageHeight, imageChannels);
 
-        this.image.get(0);
-
+        int width = imageWidth.get(0);
+        int height = imageHeight.get(0);
+        int channel = imageChannels.get(0);
+        System.out.println(width*height*channel);
         System.out.println(this.image.capacity());
 
-        ByteBuffer a = ByteBuffer.allocate(120);
+        this.tilesheet = new ByteBuffer[width*height/TILESIZE/TILESIZE];
 
-        // System.out.println(this.image.limit());
-        // System.out.println(this.image.position());
-        // System.out.println(this.image.capacity());
+        tilesheet[0] = getTileImageFromSheet(width, height, channel, 0, 0);
 
-        // this.textureID = GL46.glGenTextures();
-        // GL46.glBindTexture(GL46.GL_TEXTURE_2D, this.textureID);
-        // GL46.glEnable(GL46.GL_TEXTURE_2D);
-        // GL46.glTexImage2D(GL46.GL_TEXTURE_2D, 0, GL46.GL_RGBA, imageWidth.get(0), imageHeight.get(0), 0, GL46.GL_RGBA, GL46.GL_UNSIGNED_BYTE, image);
-        // GL46.glBindTexture(GL46.GL_TEXTURE_2D, 0);
+        this.image.rewind();
 
-        // this.shaderProgramID = GL46.glCreateProgram();
+        GL46.glEnable(GL46.GL_ALPHA_TEST);
+        GL46.glAlphaFunc(GL46.GL_EQUAL, 1);
+    }
 
-        // int vertexShader = GL46.glCreateShader(GL46.GL_VERTEX_SHADER);
-        // GL46.glShaderSource(vertexShader, readFile("src\\engine\\shader\\vertexShader.glsl"));
-        // GL46.glCompileShader(vertexShader);
-        // GL46.glAttachShader(this.shaderProgramID, vertexShader);
-
-        // int fragmentShader = GL46.glCreateShader(GL46.GL_FRAGMENT_SHADER);
-        // GL46.glShaderSource(fragmentShader, readFile("src\\engine\\shader\\fragmentShader.glsl"));
-        // GL46.glCompileShader(fragmentShader);
-        // GL46.glAttachShader(this.shaderProgramID, fragmentShader);
-
-        // GL46.glLinkProgram(this.shaderProgramID);
-        // GL46.glValidateProgram(this.shaderProgramID);
-
-        this.vao = GL46.glGenVertexArrays();
-        GL46.glBindVertexArray(vao);
-        
-        this.vbo = GL46.glGenBuffers();
-        GL46.glBindBuffer(GL46.GL_ARRAY_BUFFER, vbo);
-        GL46.glBufferData(GL46.GL_ARRAY_BUFFER, positions, GL46.GL_STATIC_DRAW);
-        GL46.glVertexAttribPointer(0, 2, GL46.GL_FLOAT, false, 0, 0);
-
-        this.texvbo = GL46.glGenBuffers();
-        GL46.glBindBuffer(GL46.GL_ARRAY_BUFFER, texvbo);
-        GL46.glBufferData(GL46.GL_ARRAY_BUFFER, textureCoords, GL46.GL_STATIC_DRAW);
-        GL46.glVertexAttribPointer(1, 2, GL46.GL_FLOAT, false, 0, 0);
-
-        GL46.glBindBuffer(GL46.GL_ARRAY_BUFFER, 0);
-        GL46.glBindVertexArray(0);
+    private ByteBuffer getTileImageFromSheet(int width, int height, int channel, int x, int y) {
+        ByteBuffer out = BufferUtils.createByteBuffer(TILESIZE*TILESIZE*channel);        
+        for (int a = y*TILESIZE; a < (y+1)*TILESIZE; a++) {
+            for (int b = x*TILESIZE; b < (x+1)*TILESIZE; b++) {
+                for (int c = 0; c < channel; c++) {
+                    // System.out.println(this.image.limit());
+                    // System.out.println(c+(b+a*width)*channel);
+                    this.image.position(c+(b+a*width)*channel);
+                    out.put(this.image.get());
+                }
+            }
+        }
+        out.flip();
+        return out;
     }
 
     private float[] getPositionsFromRectangle(int x, int y, int width, int height) {
@@ -130,7 +83,7 @@ public class Renderer {
         return -1.0f + (float) x / this.windowWidth*2.0f;
     }
     private float convertYPixelToGLCoord(int y) {
-        return -1.0f + (float) y / this.windowHeight*2.0f;
+        return 1.0f - (float) y / this.windowHeight*2.0f;
     }
 
     public void setViewport(int width, int height){
@@ -142,12 +95,11 @@ public class Renderer {
     public void render() {
         GL46.glClear(GL46.GL_COLOR_BUFFER_BIT);
 
-
-        ByteBuffer subimagebuffer = ByteBuffer.allocate(32*48*4);
-
-        GL46.glRasterPos2i(-1, 1);
-        GL46.glDrawPixels(64, 96, GL46.GL_RGBA, GL46.GL_UNSIGNED_BYTE, this.image);
-        GL46.glPixelZoom(2, -2);
+        GL46.glRasterPos2i((int)convertXPixelToGLCoord(0), (int)convertYPixelToGLCoord(0));
+        // GL46.glDrawPixels(imageWidth.get(0), imageHeight.get(0), GL46.GL_RGBA, GL46.GL_UNSIGNED_BYTE, this.image);
+        GL46.glRasterPos2i((int)convertXPixelToGLCoord(0), (int)convertYPixelToGLCoord(0));
+        GL46.glDrawPixels(TILESIZE, TILESIZE, GL46.GL_RGBA, GL46.GL_UNSIGNED_BYTE, this.tilesheet[0]);
+        GL46.glPixelZoom(SCALE, -SCALE);
 
         glfwSwapBuffers(this.windowID);
     }

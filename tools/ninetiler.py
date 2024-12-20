@@ -11,6 +11,8 @@ MODE_NINETILE = 2
 mode = MODE_LOADING
 
 numberOfTiles = 85
+imagename = "TILE_marrow.png"
+filename = "tools\\marrow.json"
 
 running = True
 
@@ -52,16 +54,15 @@ nineTileLayouts = []
 for i in range(256):
     nineTileLayouts.append([0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-imagename = "TILE_marrow.png"
-filename = "tools\\marrow.json"
 
 try:
     with open(filename) as f:
         data = json.load(f)
         image = pygame.transform.scale_by(pygame.image.load("res\\tile\\" + imagename), SCALE)
         screen = pygame.display.set_mode((TILESIZE*SCALE*5, TILESIZE*SCALE*5))
-        tiles = data[0]
-        nineTileLayouts = data[1]
+        tiles = data[0] 
+        if len(data[1]) == 256:
+            nineTileLayouts = data[1]
         # print(tiles)
         parts = numberOfTiles
 except:
@@ -204,7 +205,6 @@ while running:
                 
 
 
-
     screen.fill("black")
     if mode == MODE_IMAGE:
         screen.blit(image, ((2-currentx)*TILESIZE*SCALE, (2-currenty)*TILESIZE*SCALE))
@@ -232,7 +232,11 @@ while running:
         screen.blit(font.render(f"{currentNineTile} | {str(nineTileLayouts[currentNineTile])}", True, "green"), (0, 0))
 
         for i in range(9):
-            screen.blit(image.subsurface(TILESIZE*SCALE*interpretedTiles[i][nineTileLayouts[currentNineTile][i]][0], 
+            # print()
+            # print(nineTileLayouts[currentNineTile][i])
+            # print(i)
+            # print(interpretedTiles[i][nineTileLayouts[currentNineTile][i]])
+            screen.blit(image.subsurface(TILESIZE*SCALE*interpretedTiles[i][nineTileLayouts[currentNineTile][i]][0],
                                         TILESIZE*SCALE*interpretedTiles[i][nineTileLayouts[currentNineTile][i]][1], 
                                         TILESIZE*SCALE, TILESIZE*SCALE), 
                                         (2*TILESIZE*SCALE, 2*TILESIZE*SCALE))
